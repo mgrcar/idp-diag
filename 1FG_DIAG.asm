@@ -23,8 +23,10 @@ NeznanUkaz:  LD A,3FH ; '?'
 ;;; PROSTOR ;;;
 
 CpStr:
+	PUSH AF
 	LD A,23H ; '#'
 	CALL GDPUkaz
+	POP AF
 	RET
 Cp1:
 	CALL CpStr
