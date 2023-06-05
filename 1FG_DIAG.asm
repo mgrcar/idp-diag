@@ -23,9 +23,17 @@ NeznanUkaz:  LD A,3FH ; '?'
 ;;; PROSTOR ;;;
 
 CpStr:
-	;CALL PrelomVrstice
 	LD A,23H ; '#'
 	CALL GDPUkaz
+	RET
+Cp1:
+	CALL CpStr
+	LD I,A
+	EI
+	RET
+Cp2:
+	CALL CpStr
+	CALL L0051
 	RET
 
 ;;; KONEC PROSTORA ;;;
@@ -442,11 +450,13 @@ FDCInit:  DI
 	OUT (0E8H),A
 	OUT (0C8H),A
 	LD A,H
-	LD I,A
-	EI
+	;LD I,A
+	;EI
+	CALL Cp1 ; CHECKPOINT
 	HALT
 	LD A,08H
-	CALL L0051
+	;CALL L0051
+	CALL Cp2 ; CHECKPOINT
 	CALL L0052
 	CALL L0052
 	LD A,03H
@@ -465,7 +475,8 @@ L0043:  AND 0FH
 	LD A,04H
 	RLCA
 	AND 0FEH
-	CALL L0051
+	;CALL L0051
+	CALL Cp2 ; CHECKPOINT
 	RET
 
 ; ----------------------------------------
