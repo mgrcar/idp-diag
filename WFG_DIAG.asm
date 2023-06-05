@@ -46,8 +46,20 @@ NeznanUkaz:
 ;;; PROSTOR ;;;
 
 CpStr:
-	LD A,23H ; '#'
-	CALL GDPUkaz
+	PUSH 	AF
+	LD 	A,23H ; '#'
+	CALL 	GDPUkaz
+	POP 	AF
+	RET
+Cp1:
+	CALL 	CpStr
+	LD	I,A
+	EI
+	RET
+Cp2:
+	CALL 	CpStr
+	DI
+	IM 2
 	RET
 
 ;;; KONEC PROSTORA ;;;
@@ -347,7 +359,7 @@ Zacetek:
 	AND	0x01	; Je na voljo znak na tipkovnici?
 	JP	Z,HDBootSkok
 	CALL	BeriInIzpisiZnak
-	CP	0x03	; Je CTL+C?
+	CP	0x03	; Je CTRL+C?
 	JP	NZ,HDBootSkok
 	LD	HL,0x01FC
 	CALL	IzpisiPrelomInNiz
@@ -565,15 +577,17 @@ FDBootSkok:
 ; ----------------------------------------
 
 FDCInit:
-	DI
-	IM	2
+	;DI
+	;IM	2
+	CALL	Cp2
 	LD	HL,0x02E8
 	LD	A,L
 	OUT	(0xE8),A
 	OUT	(0xC8),A
 	LD	A,H
-	LD	I,A
-	EI
+	;LD	I,A
+	;EI
+	CALL	Cp1
 	HALT
 	LD	A,0x08
 	CALL	0x0337
