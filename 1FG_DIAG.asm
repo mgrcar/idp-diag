@@ -303,7 +303,7 @@ Zacetek:  LD SP,0FFC0H
 
 	CALL FDCInit
 
-	CALL L0029
+	CALL L0029 ; Poklicxe prazno rutino
 
 	JP FDBootSkok
 
@@ -428,10 +428,14 @@ AVDCNastaviDispAddr:  LD A,1AH
 	DB "TESTING MEMORY ... "
 	DB $0
 
-; ?????
-; IVT, ki kazxe tudi na FDC handler na 4CA???
+	DB $00, $00
 
-	DB $00, $00, $82, $04, $8E, $05, $DC, $04, $C9, $00, $00
+	; IVT, ki kazxe tudi na FDC handler na 4CA???
+	DB $82, $04, $8E, $05, $DC, $04
+
+	RET
+
+	DB $00, $00
 
 ; Nerabljeni skoki.
 
