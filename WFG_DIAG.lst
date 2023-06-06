@@ -1,0 +1,1320 @@
+---------------------------------------------
+Z80 ASSEMBLER LISTING
+Line   Addr Opcode      Label   Instruction
+---------------------------------------------
+0001   0000             	Trampolin equ F600h
+0002   0000             	CPMLDR equ E000h
+0003   0000             	Scroll equ FFEBh
+0004   0000             	Neznano1 equ FFD0h
+0005   0000             	Neznano2 equ FFD1h
+0006   0000             	Neznano3 equ FFD2h
+0007   0000             	Neznano4 equ FFD4h
+0008   0000             	Neznano5 equ FFD5h
+0009   0000             	Neznano6 equ FFD7h
+0010   0000             	Neznano7 equ FFD8h
+0011   0000             
+0012   0000             ; Partner WF/G ROM disassembly (delo v izdelavi)
+0013   0000             ; Matej Horvat
+0014   0000             
+0015   0000             ; ----------------------------------------
+0016   0000             
+0017   0000             	ORG	$0
+0018   0000             
+0019   0000             ; ----------------------------------------
+0020   0000             
+0021   0000 C3 6D 01    	JP	Zacetek
+0022   0003             
+0023   0003             ; ----------------------------------------
+0024   0003             
+0025   0003             ; Ukazna vrstica, kjer uporabnik lahko izbere zagon z diskete
+0026   0003             ; ali s trdega diska.
+0027   0003             
+0028   0003             UkaznaVrstica:
+0029   0003 31 C0 FF    	LD	SP,0xFFC0
+0030   0006 CD BF 00    	CALL	PrelomVrstice
+0031   0009 3E 2A       	LD	A,0x2A	; '*'
+0032   000B CD AC 00    	CALL	GDPUkaz
+0033   000E CD 9F 00    	CALL	BeriInIzpisiZnak
+0034   0011 E6 DF       	AND	0xDF	; Pretvori v uppercase
+0035   0013 FE 41       	CP	0x41	; 'A'
+0036   0015 CA F4 02    	JP	Z,HDBootSkok
+0037   0018 FE 46       	CP	0x46	; 'F'
+0038   001A CA FA 02    	JP	Z,FDBootSkok
+0039   001D             NeznanUkaz:
+0040   001D 3E 3F       	LD	A,0x3F	; '?'
+0041   001F CD AC 00    	CALL	GDPUkaz
+0042   0022 18 DF       	JR	UkaznaVrstica
+0043   0024             
+0044   0024             ; ----------------------------------------
+0045   0024             
+0046   0024             ;;; PROSTOR ;;;
+0047   0024             
+0048   0024             CpStr:
+0049   0024 F5          	PUSH 	AF
+0050   0025 3E 23       	LD 	A,23H ; '#'
+0051   0027 CD AC 00    	CALL 	GDPUkaz
+0052   002A F1          	POP 	AF
+0053   002B C9          	RET
+0054   002C             Cp1:
+0055   002C CD 24 00    	CALL 	CpStr
+0056   002F ED 47       	LD	I,A
+0057   0031 FB          	EI
+0058   0032 C9          	RET
+0059   0033             Cp2:
+0060   0033 CD 24 00    	CALL 	CpStr
+0061   0036 F3          	DI
+0062   0037 ED 5E       	IM 2
+0063   0039 C9          	RET
+0064   003A             
+0065   003A             ;;; KONEC PROSTORA ;;;
+0066   003A             
+0067   003A             	ORG 	$66
+0068   0066             
+0069   0066             ; ----------------------------------------
+0070   0066             
+0071   0066             ; Nerabljen skok.
+0072   0066             
+0073   0066 C3 1D 00    	JP	NeznanUkaz
+0074   0069             
+0075   0069             ; ----------------------------------------
+0076   0069             
+0077   0069             ; Nerabljene procedure za izpis sxestnajstisxkih sxtevil.
+0078   0069             
+0079   0069             IzpisiHex16:
+0080   0069 CD BF 00    	CALL	PrelomVrstice
+0081   006C 7C          	LD	A,H
+0082   006D CD 79 00    	CALL	IzpisiHex8
+0083   0070 7D          	LD	A,L
+0084   0071 CD 79 00    	CALL	IzpisiHex8
+0085   0074 3E 20       	LD	A,0x20	; ' '
+0086   0076 C3 AC 00    	JP	GDPUkaz
+0087   0079             IzpisiHex8:
+0088   0079 C5          	PUSH	BC
+0089   007A 47          	LD	B,A
+0090   007B CB 2F       	SRA	A
+0091   007D CB 2F       	SRA	A
+0092   007F CB 2F       	SRA	A
+0093   0081 CB 2F       	SRA	A
+0094   0083 E6 0F       	AND	0x0F
+0095   0085 CD 90 00    	CALL	IzpisiHex4
+0096   0088 78          	LD	A,B
+0097   0089 E6 0F       	AND	0x0F
+0098   008B CD 90 00    	CALL	IzpisiHex4
+0099   008E C1          	POP	BC
+0100   008F C9          	RET
+0101   0090             IzpisiHex4:
+0102   0090 FE 0A       	CP	0x0A
+0103   0092 FA 99 00    	JP	M,0x0099
+0104   0095 C6 37       	ADD	A,0x37
+0105   0097 18 02       	JR	0x009B
+0106   0099 C6 30       	ADD	A,0x30
+0107   009B CD AC 00    	CALL	GDPUkaz
+0108   009E C9          	RET
+0109   009F             
+0110   009F             ; ----------------------------------------
+0111   009F             
+0112   009F             ; Pocxaka, da uporabnik pritisne tipko na tipkovnici,
+0113   009F             ; nato izpisxe njen znak na GDP.
+0114   009F             
+0115   009F             BeriInIzpisiZnak:
+0116   009F DB D9       	IN	A,(0xD9)
+0117   00A1 CB 47       	BIT	0,A
+0118   00A3 28 FA       	JR	Z,BeriInIzpisiZnak	; Cxakaj, da je znak na voljo.
+0119   00A5 DB D8       	IN	A,(0xD8)
+0120   00A7 CB BF       	RES	7,A
+0121   00A9 FE 20       	CP	0x20
+0122   00AB D8          	RET	C	; Cxe je kontrolni znak, koncxamo.
+0123   00AC             
+0124   00AC             ; ----------------------------------------
+0125   00AC             
+0126   00AC             ; Posxlje ukaz na GDP.
+0127   00AC             
+0128   00AC             GDPUkaz:
+0129   00AC CD B2 00    	CALL	CakajGDP
+0130   00AF D3 20       	OUT	(0x20),A
+0131   00B1 C9          	RET
+0132   00B2             
+0133   00B2             ; ----------------------------------------
+0134   00B2             
+0135   00B2             ; Pocxaka, da GDP koncxa izvajanje morebitnega ukaza.
+0136   00B2             
+0137   00B2             CakajGDP:
+0138   00B2 F5          	PUSH	AF
+0139   00B3 DB 20       	IN	A,(0x20)
+0140   00B5 E6 04       	AND	0x04
+0141   00B7 28 FA       	JR	Z,0x00B3
+0142   00B9 F1          	POP	AF
+0143   00BA C9          	RET
+0144   00BB             
+0145   00BB             ; ----------------------------------------
+0146   00BB             
+0147   00BB             ; Nerabljena procedura, ki izpisxe presledek na GDP.
+0148   00BB             
+0149   00BB             IzpisiPresledek:
+0150   00BB 3E 20       	LD	A,0x20
+0151   00BD 18 ED       	JR	GDPUkaz
+0152   00BF             
+0153   00BF             ; ----------------------------------------
+0154   00BF             
+0155   00BF             ; Izvede prelom vrstice.
+0156   00BF             
+0157   00BF             ; Pomaknemo vsebino zaslona 12 pikslov navzgor.
+0158   00BF             PrelomVrstice:
+0159   00BF CD B2 00    	CALL	CakajGDP
+0160   00C2 3A EB FF    	LD	A,(Scroll)
+0161   00C5 D6 0C       	SUB	0x0C
+0162   00C7 32 EB FF    	LD	(Scroll),A
+0163   00CA D3 36       	OUT	(0x36),A
+0164   00CC E5          	PUSH	HL
+0165   00CD             ; Izbrisxemo novo vrstico.
+0166   00CD 21 DE 00    	LD	HL,0x00DE
+0167   00D0 CD 46 02    	CALL	IzpisiNiz
+0168   00D3             ; Premaknemo pero na levo.
+0169   00D3 21 F3 00    	LD	HL,0x00F3
+0170   00D6 CD 46 02    	CALL	IzpisiNiz
+0171   00D9 E1          	POP	HL
+0172   00DA             ; Izberemo nacxin risanja.
+0173   00DA AF          	XOR	A
+0174   00DB C3 AC 00    	JP	GDPUkaz
+0175   00DE             
+0176   00DE             ; ----------------------------------------
+0177   00DE             
+0178   00DE             ; Niz ukazov za GDP, ki premakne pero v spodnji levi kot in pobrisxe vrstico.
+0179   00DE             
+0180   00DE 03 00 05 01 	DB	$03, $00, $05, $01, $0B, $0B, $0B, $0B
+0180   00E2 0B 0B 0B 0B 
+0181   00E6 0B 0B 0B 0B 	DB	$0B, $0B, $0B, $0B, $0B, $0B, $0B, $0B
+0181   00EA 0B 0B 0B 0B 
+0182   00EE 0B 0B 0B 0B 	DB	$0B, $0B, $0B, $0B, $00
+0182   00F2 00          
+0183   00F3             
+0184   00F3             ; ----------------------------------------
+0185   00F3             
+0186   00F3             ; Niz ukazov za GDP, ki premakne pero na skrajno levo.
+0187   00F3             
+0188   00F3 21 00 0D 00 	DB	$21, $00, $0D, $00
+0189   00F7             
+0190   00F7             ; ----------------------------------------
+0191   00F7             
+0192   00F7             ; Vstopna tocxka v memory test.
+0193   00F7             
+0194   00F7             MemoryTest:
+0195   00F7 21 D1 02    	LD	HL,0x02D1
+0196   00FA CD 43 02    	CALL	IzpisiPrelomInNiz
+0197   00FD 21 00 20    	LD	HL,0x2000
+0198   0100 01 80 FF    	LD	BC,0xFF80
+0199   0103 16 02       	LD	D,0x02
+0200   0105 3E 00       	LD	A,0x00
+0201   0107 D5          	PUSH	DE
+0202   0108 F5          	PUSH	AF
+0203   0109 CD 14 01    	CALL	0x0114
+0204   010C F1          	POP	AF
+0205   010D D1          	POP	DE
+0206   010E C6 55       	ADD	A,0x55
+0207   0110 15          	DEC	D
+0208   0111 20 F4       	JR	NZ,0x0107
+0209   0113 C9          	RET
+0210   0114             
+0211   0114             ; ----------------------------------------
+0212   0114             
+0213   0114 CD 25 01    	CALL	0x0125
+0214   0117 D3 90       	OUT	(0x90),A
+0215   0119 CD 25 01    	CALL	0x0125
+0216   011C CD 38 01    	CALL	0x0138
+0217   011F D3 88       	OUT	(0x88),A
+0218   0121 CD 38 01    	CALL	0x0138
+0219   0124 C9          	RET
+0220   0125             
+0221   0125             ; ----------------------------------------
+0222   0125             
+0223   0125 F5          	PUSH	AF
+0224   0126 E5          	PUSH	HL
+0225   0127 57          	LD	D,A
+0226   0128 2F          	CPL
+0227   0129 5F          	LD	E,A
+0228   012A 72          	LD	(HL),D
+0229   012B 23          	INC	HL
+0230   012C 73          	LD	(HL),E
+0231   012D 23          	INC	HL
+0232   012E E5          	PUSH	HL
+0233   012F B7          	OR	A
+0234   0130 ED 42       	SBC	HL,BC
+0235   0132 E1          	POP	HL
+0236   0133 38 F5       	JR	C,0x012A
+0237   0135 E1          	POP	HL
+0238   0136 F1          	POP	AF
+0239   0137 C9          	RET
+0240   0138             
+0241   0138             ; ----------------------------------------
+0242   0138             
+0243   0138 E5          	PUSH	HL
+0244   0139 F5          	PUSH	AF
+0245   013A 57          	LD	D,A
+0246   013B 2F          	CPL
+0247   013C 5F          	LD	E,A
+0248   013D 7E          	LD	A,(HL)
+0249   013E BA          	CP	D
+0250   013F 20 10       	JR	NZ,0x0151
+0251   0141 23          	INC	HL
+0252   0142 7E          	LD	A,(HL)
+0253   0143 BB          	CP	E
+0254   0144 20 0B       	JR	NZ,0x0151
+0255   0146 23          	INC	HL
+0256   0147 E5          	PUSH	HL
+0257   0148 B7          	OR	A
+0258   0149 ED 42       	SBC	HL,BC
+0259   014B E1          	POP	HL
+0260   014C 38 EF       	JR	C,0x013D
+0261   014E F1          	POP	AF
+0262   014F E1          	POP	HL
+0263   0150 C9          	RET
+0264   0151 21 5A 01    	LD	HL,0x015A
+0265   0154 CD 43 02    	CALL	IzpisiPrelomInNiz
+0266   0157 C3 03 00    	JP	UkaznaVrstica
+0267   015A             
+0268   015A             ; ----------------------------------------
+0269   015A             
+0270   015A             ; Sporocxilo o neuspelem memory testu.
+0271   015A             
+0272   015A 21 00       	DB	$21, $00
+0273   015C 4D 45 4D 4F 	DB	"MEMORY ERROR !!!"
+0273   0160 52 59 20 45 
+0273   0164 52 52 4F 52 
+0273   0168 20 21 21 21 
+0274   016C 00          	DB	$00
+0275   016D             
+0276   016D             ; ----------------------------------------
+0277   016D             
+0278   016D             Zacetek:
+0279   016D 31 C0 FF    	LD	SP,0xFFC0
+0280   0170             
+0281   0170             ; Inicializacija PIO
+0282   0170 3E 07       	LD	A,0x07
+0283   0172 D3 31       	OUT	(0x31),A
+0284   0174 D3 33       	OUT	(0x33),A
+0285   0176 3E 0F       	LD	A,0x0F
+0286   0178 D3 31       	OUT	(0x31),A
+0287   017A D3 33       	OUT	(0x33),A
+0288   017C             
+0289   017C 3E 18       	LD	A,0x18
+0290   017E D3 30       	OUT	(0x30),A
+0291   0180 3E 6D       	LD	A,0x6D
+0292   0182 D3 32       	OUT	(0x32),A
+0293   0184 AF          	XOR	A
+0294   0185 D3 39       	OUT	(0x39),A
+0295   0187 D3 36       	OUT	(0x36),A
+0296   0189 32 EB FF    	LD	(Scroll),A
+0297   018C             
+0298   018C             ; (odvecx)
+0299   018C AF          	XOR	A
+0300   018D D3 21       	OUT	(0x21),A
+0301   018F             
+0302   018F             ; Izbira in spust GDP peresa
+0303   018F 3E 03       	LD	A,0x03
+0304   0191 D3 21       	OUT	(0x21),A
+0305   0193             
+0306   0193 3E 04       	LD	A,0x04	; Pocxistimo GDP sliko...
+0307   0195 CD AC 00    	CALL	GDPUkaz
+0308   0198 3E 05       	LD	A,0x05	; ... in postavimo pero na levi rob.
+0309   019A CD AC 00    	CALL	GDPUkaz
+0310   019D             
+0311   019D AF          	XOR	A
+0312   019E D3 39       	OUT	(0x39),A
+0313   01A0 D3 30       	OUT	(0x30),A
+0314   01A2             
+0315   01A2 CD 62 02    	CALL	AVDCInit1
+0316   01A5 CD 86 02    	CALL	AVDCInit2
+0317   01A8             
+0318   01A8             ; Inicializacija SIO "CRT" kanala (za tipkovnico)
+0319   01A8 0E D9       	LD	C,0xD9
+0320   01AA 21 B6 02    	LD	HL,0x02B6
+0321   01AD 06 07       	LD	B,0x07
+0322   01AF ED B3       	OTIR
+0323   01B1             
+0324   01B1             ; Inicializacija SIO "LPT" kanala
+0325   01B1 0E DB       	LD	C,0xDB
+0326   01B3 21 B6 02    	LD	HL,0x02B6
+0327   01B6 06 07       	LD	B,0x07
+0328   01B8 ED B3       	OTIR
+0329   01BA             
+0330   01BA             ; Inicializacija SIO "VAX" kanala
+0331   01BA 0E E1       	LD	C,0xE1
+0332   01BC 21 B6 02    	LD	HL,0x02B6
+0333   01BF 06 07       	LD	B,0x07
+0334   01C1 ED B3       	OTIR
+0335   01C3             
+0336   01C3 31 C0 FF    	LD	SP,0xFFC0
+0337   01C6             
+0338   01C6             ; Y koordinata GDP peresa := 100
+0339   01C6 3E 64       	LD	A,0x64
+0340   01C8 D3 2B       	OUT	(0x2B),A
+0341   01CA             
+0342   01CA 21 BD 02    	LD	HL,0x02BD
+0343   01CD CD 43 02    	CALL	IzpisiPrelomInNiz
+0344   01D0             
+0345   01D0             ; Spet postavimo pero na levi rob.
+0346   01D0 3E 05       	LD	A,0x05
+0347   01D2 CD AC 00    	CALL	GDPUkaz
+0348   01D5             
+0349   01D5 21 2D 02    	LD	HL,0x022D
+0350   01D8 CD 43 02    	CALL	IzpisiPrelomInNiz
+0351   01DB             
+0352   01DB CD F7 00    	CALL	MemoryTest
+0353   01DE             
+0354   01DE CD FD 02    	CALL	FDCInit
+0355   01E1             
+0356   01E1 CD EE 02    	CALL	0x02EE
+0357   01E4             
+0358   01E4 DB D9       	IN	A,(0xD9)
+0359   01E6 E6 01       	AND	0x01	; Je na voljo znak na tipkovnici?
+0360   01E8 CA F4 02    	JP	Z,HDBootSkok
+0361   01EB CD 9F 00    	CALL	BeriInIzpisiZnak
+0362   01EE FE 03       	CP	0x03	; Je CTRL+C?
+0363   01F0 C2 F4 02    	JP	NZ,HDBootSkok
+0364   01F3 21 FC 01    	LD	HL,0x01FC
+0365   01F6 CD 43 02    	CALL	IzpisiPrelomInNiz
+0366   01F9 C3 03 00    	JP	UkaznaVrstica
+0367   01FC             
+0368   01FC             ; ----------------------------------------
+0369   01FC             
+0370   01FC             ; Sporocxilo o prekinjenem zagonu.
+0371   01FC             
+0372   01FC 21 00       	DB	$21, $00
+0373   01FE 49 6E 74 65 	DB	"Interrupted"
+0373   0202 72 72 75 70 
+0373   0206 74 65 64    
+0374   0209 2C          	DB	$2C
+0375   020A 20 70 72 65 	DB 	" press A or F to load the system !"
+0375   020E 73 73 20 41 
+0375   0212 20 6F 72 20 
+0375   0216 46 20 74 6F 
+0375   021A 20 6C 6F 61 
+0375   021E 64 20 74 68 
+0375   0222 65 20 73 79 
+0375   0226 73 74 65 6D 
+0375   022A 20 21       
+0376   022C 00          	DB 	$00
+0377   022D             
+0378   022D             ; ----------------------------------------
+0379   022D             
+0380   022D             ; Niz z verzijo programa.
+0381   022D             
+0382   022D 21 00       	DB	$21, $00
+0383   022F 5B 20 42 6F 	DB	"[ Boot V 1.1 - WF ]"
+0383   0233 6F 74 20 56 
+0383   0237 20 31 2E 31 
+0383   023B 20 2D 20 57 
+0383   023F 46 20 5D    
+0384   0242 00          	DB 	$00
+0385   0243             
+0386   0243             ; ----------------------------------------
+0387   0243             
+0388   0243             IzpisiPrelomInNiz:
+0389   0243 CD BF 00    	CALL	PrelomVrstice
+0390   0246             ; (se nadaljuje v IzpisiNiz)
+0391   0246             
+0392   0246             ; ----------------------------------------
+0393   0246             
+0394   0246             ; Izpisxe niz na GDP.
+0395   0246             ; Prvi bajt niza se zapisxe v GDP-jev register za velikost znakov,
+0396   0246             ; drugi pa v kontrolni register 2. V praksi je drugi bajt vedno 0,
+0397   0246             ; lahko bi pa bil 4 za lezxecxe besedilo.
+0398   0246             
+0399   0246             ; Vhod:
+0400   0246             ; HL -> niz, zakljucxen z 0
+0401   0246             
+0402   0246             ; Unicxi A.
+0403   0246             
+0404   0246             IzpisiNiz:
+0405   0246 CD B2 00    	CALL	CakajGDP
+0406   0249 7E          	LD	A,(HL)
+0407   024A D3 23       	OUT	(0x23),A
+0408   024C 23          	INC	HL
+0409   024D 7E          	LD	A,(HL)
+0410   024E D3 22       	OUT	(0x22),A
+0411   0250 23          	INC	HL
+0412   0251 7E          	LD	A,(HL)
+0413   0252 B7          	OR	A
+0414   0253 C8          	RET	Z
+0415   0254 CD AC 00    	CALL	GDPUkaz
+0416   0257 23          	INC	HL
+0417   0258 18 F7       	JR	0x0251
+0418   025A             
+0419   025A             ; ----------------------------------------
+0420   025A             
+0421   025A             Zakasnitev:
+0422   025A C5          	PUSH	BC
+0423   025B 06 FF       	LD	B,0xFF
+0424   025D 00          	NOP
+0425   025E 10 FD       	DJNZ	0x025D
+0426   0260 C1          	POP	BC
+0427   0261 C9          	RET
+0428   0262             
+0429   0262             ; ----------------------------------------
+0430   0262             
+0431   0262             AVDCInit1:
+0432   0262 3E 00       	LD	A,0x00
+0433   0264 D3 39       	OUT	(0x39),A
+0434   0266 CD 5A 02    	CALL	Zakasnitev
+0435   0269 CD 5A 02    	CALL	Zakasnitev
+0436   026C CD 5A 02    	CALL	Zakasnitev
+0437   026F 21 AC 02    	LD	HL,0x02AC
+0438   0272 AF          	XOR	A
+0439   0273             
+0440   0273             ; SS1 := 0
+0441   0273 D3 3E       	OUT	(0x3E),A
+0442   0275 D3 3F       	OUT	(0x3F),A
+0443   0277             
+0444   0277             ; SS2 := 0
+0445   0277 D3 3A       	OUT	(0x3A),A
+0446   0279 D3 3B       	OUT	(0x3B),A
+0447   027B             
+0448   027B 3E 10       	LD	A,0x10
+0449   027D D3 39       	OUT	(0x39),A
+0450   027F 06 0A       	LD	B,0x0A
+0451   0281 0E 38       	LD	C,0x38
+0452   0283 ED B3       	OTIR
+0453   0285             
+0454   0285 C9          	RET
+0455   0286             
+0456   0286             ; ----------------------------------------
+0457   0286             
+0458   0286             ; Vkljucxi AVDC kurzor in ???
+0459   0286             AVDCInit2:
+0460   0286 3E 3D       	LD	A,0x3D
+0461   0288 D3 39       	OUT	(0x39),A
+0462   028A             
+0463   028A             ; Naslov AVDC kurzorja := 0
+0464   028A AF          	XOR	A
+0465   028B D3 3D       	OUT	(0x3D),A
+0466   028D D3 3C       	OUT	(0x3C),A
+0467   028F             
+0468   028F 21 FF 1F    	LD	HL,0x1FFF
+0469   0292 CD A1 02    	CALL	AVDCNastaviDispAddr
+0470   0295             
+0471   0295             ; Zapolni AVDC framebuffer s presledki?
+0472   0295 3E 20       	LD	A,0x20
+0473   0297 D3 34       	OUT	(0x34),A
+0474   0299 AF          	XOR	A
+0475   029A D3 35       	OUT	(0x35),A
+0476   029C 3E BB       	LD	A,0xBB	; Write from cursor to pointer
+0477   029E D3 39       	OUT	(0x39),A
+0478   02A0             
+0479   02A0 C9          	RET
+0480   02A1             
+0481   02A1             ; ----------------------------------------
+0482   02A1             
+0483   02A1             ; Nastavi AVDC inicializacijska registra 10 in 11
+0484   02A1             ; (display address register lower/upper).
+0485   02A1             
+0486   02A1             ; Vhod:
+0487   02A1             ; HL = novi display address
+0488   02A1             
+0489   02A1             ; Unicxi A.
+0490   02A1             
+0491   02A1             AVDCNastaviDispAddr:
+0492   02A1 3E 1A       	LD	A,0x1A
+0493   02A3 D3 39       	OUT	(0x39),A
+0494   02A5 7D          	LD	A,L
+0495   02A6 D3 38       	OUT	(0x38),A
+0496   02A8 7C          	LD	A,H
+0497   02A9 D3 38       	OUT	(0x38),A
+0498   02AB C9          	RET
+0499   02AC             
+0500   02AC             ; ----------------------------------------
+0501   02AC             
+0502   02AC             ; Inicializacijski niz za AVDC.
+0503   02AC             
+0504   02AC D0 2F 0D 05 	DB	$D0, $2F, $0D, $05, $99, $4F, $0A, $EA
+0504   02B0 99 4F 0A EA 
+0505   02B4 00 30       	DB	$00, $30
+0506   02B6             
+0507   02B6             ; ----------------------------------------
+0508   02B6             
+0509   02B6             ; Inicializacijski niz za serijska vrata.
+0510   02B6             
+0511   02B6 18 04 44 03 	DB	$18, $04, $44, $03, $C1, $05, $68
+0511   02BA C1 05 68    
+0512   02BD             
+0513   02BD             ; ----------------------------------------
+0514   02BD             
+0515   02BD             ; Zagonsko sporocxilo.
+0516   02BD             
+0517   02BD A8 00       	DB	$A8, $00
+0518   02BF 44 65 6C 74 	DB	"Delta Partner GDP"
+0518   02C3 61 20 50 61 
+0518   02C7 72 74 6E 65 
+0518   02CB 72 20 47 44 
+0518   02CF 50          
+0519   02D0 00          	DB 	$00
+0520   02D1             
+0521   02D1             ; ----------------------------------------
+0522   02D1             
+0523   02D1             ; Sporocxilo o testiranju spomina.
+0524   02D1             
+0525   02D1 21 00       	DB	$21, $00
+0526   02D3 54 45 53 54 	DB	"TESTING MEMORY ... "
+0526   02D7 49 4E 47 20 
+0526   02DB 4D 45 4D 4F 
+0526   02DF 52 59 20 2E 
+0526   02E3 2E 2E 20    
+0527   02E6 00          	DB 	$00
+0528   02E7             
+0529   02E7             ; ----------------------------------------
+0530   02E7             
+0531   02E7             ; Nerabljen bajt?
+0532   02E7             
+0533   02E7 00          	DB	$00
+0534   02E8             
+0535   02E8             ; ----------------------------------------
+0536   02E8             
+0537   02E8             ; ???
+0538   02E8             ; To je v resnici IVT, ki kazxe tudi na FDC handler na 4CA
+0539   02E8             
+0540   02E8 CA 04 D6 05 	DW	$04CA, $05D6, $0524
+0540   02EC 24 05       
+0541   02EE             
+0542   02EE             ; ----------------------------------------
+0543   02EE             
+0544   02EE             ; Prazna funkcija; verjetno se je pogojno uporabljala med razvojem.
+0545   02EE             
+0546   02EE C9          	RET
+0547   02EF             
+0548   02EF             ; ----------------------------------------
+0549   02EF             
+0550   02EF             ; Nerabljeno.
+0551   02EF             
+0552   02EF 00          	NOP
+0553   02F0 00          	NOP
+0554   02F1             
+0555   02F1             ; ----------------------------------------
+0556   02F1             
+0557   02F1             ; Nerabljen skok.
+0558   02F1             
+0559   02F1 C3 CE 04    	JP	0x04CE
+0560   02F4             
+0561   02F4             ; ----------------------------------------
+0562   02F4             
+0563   02F4             HDBootSkok:
+0564   02F4 C3 46 05    	JP	HDBoot
+0565   02F7             
+0566   02F7             ; ----------------------------------------
+0567   02F7             
+0568   02F7             ; Nerabljen skok.
+0569   02F7             
+0570   02F7 C3 A7 05    	JP	0x05A7
+0571   02FA             
+0572   02FA             ; ----------------------------------------
+0573   02FA             
+0574   02FA             FDBootSkok:
+0575   02FA C3 D4 04    	JP	FDBoot
+0576   02FD             
+0577   02FD             ; ----------------------------------------
+0578   02FD             
+0579   02FD             FDCInit:
+0580   02FD             	;DI
+0581   02FD             	;IM	2
+0582   02FD CD 33 00    	CALL	Cp2
+0583   0300 21 E8 02    	LD	HL,0x02E8
+0584   0303 7D          	LD	A,L
+0585   0304 D3 E8       	OUT	(0xE8),A
+0586   0306 D3 C8       	OUT	(0xC8),A
+0587   0308 7C          	LD	A,H
+0588   0309             	;LD	I,A
+0589   0309             	;EI
+0590   0309 CD 2C 00    	CALL	Cp1
+0591   030C 76          	HALT
+0592   030D 3E 08       	LD	A,0x08
+0593   030F CD 37 03    	CALL	0x0337
+0594   0312 CD 45 03    	CALL	0x0345
+0595   0315 CD 45 03    	CALL	0x0345
+0596   0318 3E 03       	LD	A,0x03
+0597   031A CD 37 03    	CALL	0x0337
+0598   031D 3E 0D       	LD	A,0x0D
+0599   031F E6 0F       	AND	0x0F
+0600   0321 07          	RLCA
+0601   0322 07          	RLCA
+0602   0323 07          	RLCA
+0603   0324 07          	RLCA
+0604   0325 47          	LD	B,A
+0605   0326 3E 0E       	LD	A,0x0E
+0606   0328 E6 0F       	AND	0x0F
+0607   032A B0          	OR	B
+0608   032B CD 37 03    	CALL	0x0337
+0609   032E 3E 04       	LD	A,0x04
+0610   0330 07          	RLCA
+0611   0331 E6 FE       	AND	0xFE
+0612   0333 CD 37 03    	CALL	0x0337
+0613   0336 C9          	RET
+0614   0337             
+0615   0337             ; ----------------------------------------
+0616   0337             
+0617   0337 F5          	PUSH	AF
+0618   0338 DB F0       	IN	A,(0xF0)
+0619   033A E6 C0       	AND	0xC0
+0620   033C FE 80       	CP	0x80
+0621   033E C2 38 03    	JP	NZ,0x0338
+0622   0341 F1          	POP	AF
+0623   0342 D3 F1       	OUT	(0xF1),A
+0624   0344 C9          	RET
+0625   0345             
+0626   0345             ; ----------------------------------------
+0627   0345             
+0628   0345 DB F0       	IN	A,(0xF0)
+0629   0347 E6 C0       	AND	0xC0
+0630   0349 FE C0       	CP	0xC0
+0631   034B C2 45 03    	JP	NZ,0x0345
+0632   034E DB F1       	IN	A,(0xF1)
+0633   0350 C9          	RET
+0634   0351             
+0635   0351             ; ----------------------------------------
+0636   0351             
+0637   0351 3E 07       	LD	A,0x07
+0638   0353 CD 37 03    	CALL	0x0337
+0639   0356 3A D0 FF    	LD	A,(Neznano1)
+0640   0359 CD 37 03    	CALL	0x0337
+0641   035C FB          	EI
+0642   035D 76          	HALT
+0643   035E 3E 08       	LD	A,0x08
+0644   0360 CD 37 03    	CALL	0x0337
+0645   0363 CD 45 03    	CALL	0x0345
+0646   0366 CD 45 03    	CALL	0x0345
+0647   0369 AF          	XOR	A
+0648   036A 32 D1 FF    	LD	(Neznano2),A
+0649   036D 32 D7 FF    	LD	(Neznano6),A
+0650   0370 C9          	RET
+0651   0371             
+0652   0371             ; ----------------------------------------
+0653   0371             
+0654   0371 CD ED 03    	CALL	0x03ED
+0655   0374 C0          	RET	NZ
+0656   0375 3E 0A       	LD	A,0x0A
+0657   0377 32 D5 FF    	LD	(Neznano5),A
+0658   037A 3E 05       	LD	A,0x05
+0659   037C D3 C0       	OUT	(0xC0),A
+0660   037E 3E CF       	LD	A,0xCF
+0661   0380 D3 C0       	OUT	(0xC0),A
+0662   0382 CD 5C 04    	CALL	0x045C
+0663   0385 21 6E 04    	LD	HL,0x046E
+0664   0388 ED B3       	OTIR
+0665   038A 3E 06       	LD	A,0x06
+0666   038C F6 40       	OR	0x40
+0667   038E CD 2A 04    	CALL	0x042A
+0668   0391 CD 46 04    	CALL	0x0446
+0669   0394 FB          	EI
+0670   0395 76          	HALT
+0671   0396 DA AB 03    	JP	C,0x03AB
+0672   0399 DB 98       	IN	A,(0x98)
+0673   039B E6 01       	AND	0x01
+0674   039D C2 94 03    	JP	NZ,0x0394
+0675   03A0 21 29 05    	LD	HL,0x0529
+0676   03A3 CD 43 02    	CALL	IzpisiPrelomInNiz
+0677   03A6 D3 98       	OUT	(0x98),A
+0678   03A8 C3 94 03    	JP	0x0394
+0679   03AB 3E 03       	LD	A,0x03
+0680   03AD D3 CA       	OUT	(0xCA),A
+0681   03AF CD 45 03    	CALL	0x0345
+0682   03B2 CD 45 03    	CALL	0x0345
+0683   03B5 F5          	PUSH	AF
+0684   03B6 06 05       	LD	B,0x05
+0685   03B8 CD 45 03    	CALL	0x0345
+0686   03BB 05          	DEC	B
+0687   03BC C2 B8 03    	JP	NZ,0x03B8
+0688   03BF F1          	POP	AF
+0689   03C0 FE 80       	CP	0x80
+0690   03C2 C8          	RET	Z
+0691   03C3 3A D5 FF    	LD	A,(Neznano5)
+0692   03C6 B7          	OR	A
+0693   03C7 CA EB 03    	JP	Z,0x03EB
+0694   03CA 3D          	DEC	A
+0695   03CB 32 D5 FF    	LD	(Neznano5),A
+0696   03CE 3A D1 FF    	LD	A,(Neznano2)
+0697   03D1 F5          	PUSH	AF
+0698   03D2 3C          	INC	A
+0699   03D3 32 D1 FF    	LD	(Neznano2),A
+0700   03D6 3A D7 FF    	LD	A,(Neznano6)
+0701   03D9 F5          	PUSH	AF
+0702   03DA CD ED 03    	CALL	0x03ED
+0703   03DD F1          	POP	AF
+0704   03DE 32 D7 FF    	LD	(Neznano6),A
+0705   03E1 F1          	POP	AF
+0706   03E2 32 D1 FF    	LD	(Neznano2),A
+0707   03E5 CD ED 03    	CALL	0x03ED
+0708   03E8 C3 7A 03    	JP	0x037A
+0709   03EB 3C          	INC	A
+0710   03EC C9          	RET
+0711   03ED             
+0712   03ED             ; ----------------------------------------
+0713   03ED             
+0714   03ED CD 01 05    	CALL	0x0501
+0715   03F0 3E 0F       	LD	A,0x0F
+0716   03F2 CD 37 03    	CALL	0x0337
+0717   03F5 CD 1B 04    	CALL	0x041B
+0718   03F8 CD 37 03    	CALL	0x0337
+0719   03FB 3A D1 FF    	LD	A,(Neznano2)
+0720   03FE CD 37 03    	CALL	0x0337
+0721   0401 FB          	EI
+0722   0402 76          	HALT
+0723   0403 3E 08       	LD	A,0x08
+0724   0405 CD 37 03    	CALL	0x0337
+0725   0408 CD 45 03    	CALL	0x0345
+0726   040B CD 45 03    	CALL	0x0345
+0727   040E 47          	LD	B,A
+0728   040F 3A D1 FF    	LD	A,(Neznano2)
+0729   0412 B8          	CP	B
+0730   0413 CA 19 04    	JP	Z,0x0419
+0731   0416 AF          	XOR	A
+0732   0417 3C          	INC	A
+0733   0418 C9          	RET
+0734   0419 AF          	XOR	A
+0735   041A C9          	RET
+0736   041B             
+0737   041B             ; ----------------------------------------
+0738   041B             
+0739   041B 3A D7 FF    	LD	A,(Neznano6)
+0740   041E 07          	RLCA
+0741   041F 07          	RLCA
+0742   0420 E6 04       	AND	0x04
+0743   0422 C5          	PUSH	BC
+0744   0423 47          	LD	B,A
+0745   0424 3A D0 FF    	LD	A,(Neznano1)
+0746   0427 B0          	OR	B
+0747   0428 C1          	POP	BC
+0748   0429 C9          	RET
+0749   042A             
+0750   042A             ; ----------------------------------------
+0751   042A             
+0752   042A CD 37 03    	CALL	0x0337
+0753   042D CD 1B 04    	CALL	0x041B
+0754   0430 CD 37 03    	CALL	0x0337
+0755   0433 3A D1 FF    	LD	A,(Neznano2)
+0756   0436 CD 37 03    	CALL	0x0337
+0757   0439 3A D7 FF    	LD	A,(Neznano6)
+0758   043C CD 37 03    	CALL	0x0337
+0759   043F 3A D4 FF    	LD	A,(Neznano4)
+0760   0442 CD 37 03    	CALL	0x0337
+0761   0445 C9          	RET
+0762   0446             
+0763   0446             ; ----------------------------------------
+0764   0446             
+0765   0446 3E 01       	LD	A,0x01
+0766   0448 CD 37 03    	CALL	0x0337
+0767   044B 3A D4 FF    	LD	A,(Neznano4)
+0768   044E CD 37 03    	CALL	0x0337
+0769   0451 3E 0A       	LD	A,0x0A
+0770   0453 CD 37 03    	CALL	0x0337
+0771   0456 3E FF       	LD	A,0xFF
+0772   0458 CD 37 03    	CALL	0x0337
+0773   045B C9          	RET
+0774   045C             
+0775   045C             ; ----------------------------------------
+0776   045C             
+0777   045C 3E 79       	LD	A,0x79
+0778   045E D3 C0       	OUT	(0xC0),A
+0779   0460 2A D2 FF    	LD	HL,(Neznano3)
+0780   0463 7D          	LD	A,L
+0781   0464 D3 C0       	OUT	(0xC0),A
+0782   0466 7C          	LD	A,H
+0783   0467 D3 C0       	OUT	(0xC0),A
+0784   0469 06 0B       	LD	B,0x0B
+0785   046B 0E C0       	LD	C,0xC0
+0786   046D C9          	RET
+0787   046E             
+0788   046E             ; ----------------------------------------
+0789   046E             
+0790   046E             ; Init string za FDC???
+0791   046E             
+0792   046E FF 00 14 28 	DB	$FF, $00, $14, $28, $85, $F1, $8A, $CF
+0792   0472 85 F1 8A CF 
+0793   0476 01 CF 87 FF 	DB	$01, $CF, $87, $FF, $00, $14, $28, $85
+0793   047A 00 14 28 85 
+0794   047E F1 8A CF 05 	DB	$F1, $8A, $CF, $05, $CF, $87
+0794   0482 CF 87       
+0795   0484             
+0796   0484             ; ----------------------------------------
+0797   0484             
+0798   0484             FDNaloziCPMLDR:
+0799   0484 3E 13       	LD	A,0x13
+0800   0486 32 D8 FF    	LD	(Neznano7),A
+0801   0489 AF          	XOR	A
+0802   048A 32 D0 FF    	LD	(Neznano1),A
+0803   048D CD 51 03    	CALL	0x0351
+0804   0490 21 00 E0    	LD	HL,0xE000
+0805   0493 22 D2 FF    	LD	(Neznano3),HL
+0806   0496 AF          	XOR	A
+0807   0497 3C          	INC	A
+0808   0498 32 D4 FF    	LD	(Neznano4),A
+0809   049B CD 71 03    	CALL	0x0371
+0810   049E C2 D1 06    	JP	NZ,0x06D1
+0811   04A1 11 00 01    	LD	DE,0x0100
+0812   04A4 2A D2 FF    	LD	HL,(Neznano3)
+0813   04A7 19          	ADD	HL,DE
+0814   04A8 22 D2 FF    	LD	(Neznano3),HL
+0815   04AB 3A D4 FF    	LD	A,(Neznano4)
+0816   04AE 3C          	INC	A
+0817   04AF 32 D4 FF    	LD	(Neznano4),A
+0818   04B2 21 D8 FF    	LD	HL,0xFFD8
+0819   04B5 BE          	CP	(HL)
+0820   04B6 C2 9B 04    	JP	NZ,0x049B
+0821   04B9 3A D7 FF    	LD	A,(Neznano6)
+0822   04BC B7          	OR	A
+0823   04BD C0          	RET	NZ
+0824   04BE 3C          	INC	A
+0825   04BF 32 D7 FF    	LD	(Neznano6),A
+0826   04C2 3E 0E       	LD	A,0x0E
+0827   04C4 32 D8 FF    	LD	(Neznano7),A
+0828   04C7 C3 96 04    	JP	0x0496
+0829   04CA             
+0830   04CA             ; ----------------------------------------
+0831   04CA             
+0832   04CA             FDCIntHandler:
+0833   04CA FB          	EI
+0834   04CB 37          	SCF
+0835   04CC ED 4D       	RETI
+0836   04CE             
+0837   04CE             ; ----------------------------------------
+0838   04CE             
+0839   04CE             ; Sem skocxi procedura na 02F1, ki ni nikoli klicana, torej tudi
+0840   04CE             ; to ni nikoli klicano.
+0841   04CE             
+0842   04CE CD 84 04    	CALL	FDNaloziCPMLDR
+0843   04D1 C3 03 00    	JP	UkaznaVrstica
+0844   04D4             
+0845   04D4             ; ----------------------------------------
+0846   04D4             
+0847   04D4             FDBoot:
+0848   04D4 CD 84 04    	CALL	FDNaloziCPMLDR
+0849   04D7 3A 00 E0    	LD	A,(CPMLDR)	; Prvi bajt prvega sektorja...
+0850   04DA FE C3       	CP	0xC3	; ... mora biti opcode za brezpogojni JP...
+0851   04DC CA EA 04    	JP	Z,0x04EA
+0852   04DF FE 31       	CP	0x31	; ... ali LD SP, nn
+0853   04E1 CA EA 04    	JP	Z,0x04EA
+0854   04E4 21 93 05    	LD	HL,0x0593
+0855   04E7 C3 DA 06    	JP	Napaka
+0856   04EA             
+0857   04EA             ; Nalagalnik OSa je nalozxen; skocximo vanj
+0858   04EA C3 00 F6    	JP	Trampolin
+0859   04ED             
+0860   04ED             ; ----------------------------------------
+0861   04ED             
+0862   04ED DB 98       	IN	A,(0x98)
+0863   04EF E6 01       	AND	0x01
+0864   04F1 C9          	RET
+0865   04F2             
+0866   04F2             ; ----------------------------------------
+0867   04F2             
+0868   04F2 3E FF       	LD	A,0xFF
+0869   04F4 C5          	PUSH	BC
+0870   04F5 06 FF       	LD	B,0xFF
+0871   04F7 05          	DEC	B
+0872   04F8 C2 F7 04    	JP	NZ,0x04F7
+0873   04FB 3D          	DEC	A
+0874   04FC C2 F5 04    	JP	NZ,0x04F5
+0875   04FF C1          	POP	BC
+0876   0500 C9          	RET
+0877   0501             
+0878   0501             ; ----------------------------------------
+0879   0501             
+0880   0501 CD ED 04    	CALL	0x04ED
+0881   0504 C2 0C 05    	JP	NZ,0x050C
+0882   0507 D3 98       	OUT	(0x98),A
+0883   0509 CD F2 04    	CALL	0x04F2
+0884   050C AF          	XOR	A
+0885   050D D3 98       	OUT	(0x98),A
+0886   050F 3E 47       	LD	A,0x47
+0887   0511 D3 C8       	OUT	(0xC8),A
+0888   0513 D3 C9       	OUT	(0xC9),A
+0889   0515 3E 82       	LD	A,0x82
+0890   0517 D3 C8       	OUT	(0xC8),A
+0891   0519 D3 C9       	OUT	(0xC9),A
+0892   051B 3E A7       	LD	A,0xA7
+0893   051D D3 CA       	OUT	(0xCA),A
+0894   051F 3E FF       	LD	A,0xFF
+0895   0521 D3 CA       	OUT	(0xCA),A
+0896   0523 C9          	RET
+0897   0524             
+0898   0524             ; ----------------------------------------
+0899   0524             
+0900   0524             NeznanIntHandler:
+0901   0524 FB          	EI
+0902   0525 37          	SCF
+0903   0526 3F          	CCF
+0904   0527 ED 4D       	RETI
+0905   0529             
+0906   0529             ; ----------------------------------------
+0907   0529             
+0908   0529             ; Sporocxilo, da disketni pogon ni pripravljen.
+0909   0529             
+0910   0529 21 00       	DB	$21, $00
+0911   052B 46 4C 4F 50 	DB	"FLOPPY DISK NOT READY !!!!"
+0911   052F 50 59 20 44 
+0911   0533 49 53 4B 20 
+0911   0537 4E 4F 54 20 
+0911   053B 52 45 41 44 
+0911   053F 59 20 21 21 
+0911   0543 21 21       
+0912   0545 00          	DB	$00
+0913   0546             
+0914   0546             ; ----------------------------------------
+0915   0546             
+0916   0546             HDBoot:
+0917   0546 CD 0B 06    	CALL	HDNaloziCPMLDR
+0918   0549 3A 00 E0    	LD	A,(CPMLDR)	; Prvi bajt prvega sektorja...
+0919   054C FE 31       	CP	0x31	; ... mora biti opcode za LD SP, nn
+0920   054E CA 57 05    	JP	Z,0x0557
+0921   0551 21 93 05    	LD	HL,0x0593
+0922   0554 C3 DA 06    	JP	Napaka
+0923   0557             
+0924   0557             ; Kopiramo ROM na 2000h
+0925   0557 21 00 00    	LD	HL,0x0000
+0926   055A 11 00 20    	LD	DE,0x2000
+0927   055D 01 00 08    	LD	BC,0x0800
+0928   0560 ED B0       	LDIR
+0929   0562             
+0930   0562             ; Kopiramo interrupt handler(?)
+0931   0562 21 61 07    	LD	HL,0x0761
+0932   0565 11 00 C0    	LD	DE,0xC000
+0933   0568 01 6C 00    	LD	BC,0x006C
+0934   056B ED B0       	LDIR
+0935   056D             
+0936   056D F3          	DI
+0937   056E 3E 03       	LD	A,0x03
+0938   0570 D3 C8       	OUT	(0xC8),A
+0939   0572 D3 C9       	OUT	(0xC9),A
+0940   0574 21 00 C0    	LD	HL,0xC000
+0941   0577 7C          	LD	A,H
+0942   0578 ED 47       	LD	I,A
+0943   057A 7D          	LD	A,L
+0944   057B D3 E8       	OUT	(0xE8),A
+0945   057D D3 C8       	OUT	(0xC8),A
+0946   057F 3E 47       	LD	A,0x47
+0947   0581 D3 C8       	OUT	(0xC8),A
+0948   0583 3E FF       	LD	A,0xFF
+0949   0585 D3 C8       	OUT	(0xC8),A
+0950   0587 3E C7       	LD	A,0xC7
+0951   0589 D3 C9       	OUT	(0xC9),A
+0952   058B 3E 64       	LD	A,0x64
+0953   058D D3 C9       	OUT	(0xC9),A
+0954   058F FB          	EI
+0955   0590             
+0956   0590             ; Nalagalnik OSa je nalozxen; skocximo vanj
+0957   0590 C3 00 F6    	JP	Trampolin
+0958   0593             
+0959   0593             ; ----------------------------------------
+0960   0593             
+0961   0593             ; Sporocxilo, da trdi disk ni zagonski.
+0962   0593             
+0963   0593 21 00       	DB	$21, $00
+0964   0595 4E 4F 20 53 	DB	"NO SYSTEM ON DISK"
+0964   0599 59 53 54 45 
+0964   059D 4D 20 4F 4E 
+0964   05A1 20 44 49 53 
+0964   05A5 4B          
+0965   05A6 00          	DB	$00
+0966   05A7             
+0967   05A7             ; ----------------------------------------
+0968   05A7             
+0969   05A7             ; Sem skocxi procedura na 02F7, ki ni nikoli klicana, torej tudi
+0970   05A7             ; to ni nikoli klicano.
+0971   05A7             
+0972   05A7 CD 0B 06    	CALL	HDNaloziCPMLDR
+0973   05AA C3 03 00    	JP	UkaznaVrstica
+0974   05AD             
+0975   05AD             ; ----------------------------------------
+0976   05AD             
+0977   05AD AF          	XOR	A
+0978   05AE D3 12       	OUT	(0x12),A
+0979   05B0 F3          	DI
+0980   05B1 3E 47       	LD	A,0x47
+0981   05B3 D3 C8       	OUT	(0xC8),A
+0982   05B5 3E FF       	LD	A,0xFF
+0983   05B7 D3 C8       	OUT	(0xC8),A
+0984   05B9 3E C7       	LD	A,0xC7
+0985   05BB D3 C9       	OUT	(0xC9),A
+0986   05BD 3E 50       	LD	A,0x50
+0987   05BF D3 C9       	OUT	(0xC9),A
+0988   05C1 FB          	EI
+0989   05C2 CD FC 05    	CALL	0x05FC
+0990   05C5 21 55 07    	LD	HL,0x0755
+0991   05C8 CD 3D 06    	CALL	0x063D
+0992   05CB CD 62 06    	CALL	0x0662
+0993   05CE C2 C5 05    	JP	NZ,0x05C5
+0994   05D1 3E 03       	LD	A,0x03
+0995   05D3 D3 C9       	OUT	(0xC9),A
+0996   05D5 C9          	RET
+0997   05D6             
+0998   05D6             ; ----------------------------------------
+0999   05D6             
+1000   05D6             CTCIntHandler:
+1001   05D6 3E 03       	LD	A,0x03
+1002   05D8 D3 C9       	OUT	(0xC9),A
+1003   05DA CD E4 05    	CALL	IzvediRETI
+1004   05DD FB          	EI
+1005   05DE 21 E6 05    	LD	HL,0x05E6
+1006   05E1 C3 DA 06    	JP	Napaka
+1007   05E4             
+1008   05E4             ; ----------------------------------------
+1009   05E4             
+1010   05E4             IzvediRETI:
+1011   05E4 ED 4D       	RETI
+1012   05E6             
+1013   05E6             ; ----------------------------------------
+1014   05E6             
+1015   05E6             ; Sporocxilo, da trdi disk ni pripravljen.
+1016   05E6             
+1017   05E6 21 00       	DB	$21, $00
+1018   05E8 48 41 52 44 	DB	"HARD DISK NOT READY"
+1018   05EC 20 44 49 53 
+1018   05F0 4B 20 4E 4F 
+1018   05F4 54 20 52 45 
+1018   05F8 41 44 59    
+1019   05FB 00          	DB	$00
+1020   05FC             
+1021   05FC             ; ----------------------------------------
+1022   05FC             
+1023   05FC 21 47 07    	LD	HL,0x0747
+1024   05FF CD 52 06    	CALL	0x0652
+1025   0602 CD 62 06    	CALL	0x0662
+1026   0605 C8          	RET	Z
+1027   0606 3E 34       	LD	A,0x34
+1028   0608 C3 D7 06    	JP	0x06D7
+1029   060B             
+1030   060B             ; ----------------------------------------
+1031   060B             
+1032   060B             HDNaloziCPMLDR:
+1033   060B CD AD 05    	CALL	0x05AD
+1034   060E 3E C3       	LD	A,0xC3
+1035   0610 D3 C0       	OUT	(0xC0),A
+1036   0612 21 5B 07    	LD	HL,0x075B
+1037   0615 CD 3D 06    	CALL	0x063D
+1038   0618 DB 10       	IN	A,(0x10)
+1039   061A E6 40       	AND	0x40
+1040   061C CA 18 06    	JP	Z,0x0618
+1041   061F DB 10       	IN	A,(0x10)
+1042   0621 E6 10       	AND	0x10
+1043   0623 C2 34 06    	JP	NZ,0x0634
+1044   0626 3E 22       	LD	A,0x22
+1045   0628 D3 10       	OUT	(0x10),A
+1046   062A CD A9 06    	CALL	0x06A9
+1047   062D DB 10       	IN	A,(0x10)
+1048   062F E6 10       	AND	0x10
+1049   0631 CA 2D 06    	JP	Z,0x062D
+1050   0634 CD 62 06    	CALL	0x0662
+1051   0637 C8          	RET	Z
+1052   0638 3E 32       	LD	A,0x32
+1053   063A C3 D7 06    	JP	0x06D7
+1054   063D             
+1055   063D             ; ----------------------------------------
+1056   063D             
+1057   063D CD 7F 06    	CALL	0x067F
+1058   0640 CD 9B 06    	CALL	0x069B
+1059   0643 47          	LD	B,A
+1060   0644 E6 10       	AND	0x10
+1061   0646 C8          	RET	Z
+1062   0647 78          	LD	A,B
+1063   0648 E6 40       	AND	0x40
+1064   064A C0          	RET	NZ
+1065   064B 7E          	LD	A,(HL)
+1066   064C D3 11       	OUT	(0x11),A
+1067   064E 23          	INC	HL
+1068   064F C3 40 06    	JP	0x0640
+1069   0652             
+1070   0652             ; ----------------------------------------
+1071   0652             
+1072   0652 CD 7F 06    	CALL	0x067F
+1073   0655 CD 9B 06    	CALL	0x069B
+1074   0658 E6 40       	AND	0x40
+1075   065A C0          	RET	NZ
+1076   065B 7E          	LD	A,(HL)
+1077   065C D3 11       	OUT	(0x11),A
+1078   065E 23          	INC	HL
+1079   065F C3 55 06    	JP	0x0655
+1080   0662             
+1081   0662             ; ----------------------------------------
+1082   0662             
+1083   0662 CD 9B 06    	CALL	0x069B
+1084   0665 E6 10       	AND	0x10
+1085   0667 C2 6F 06    	JP	NZ,0x066F
+1086   066A 3E 42       	LD	A,0x42
+1087   066C C3 D7 06    	JP	0x06D7
+1088   066F DB 11       	IN	A,(0x11)
+1089   0671 47          	LD	B,A
+1090   0672 23          	INC	HL
+1091   0673 CD 9B 06    	CALL	0x069B
+1092   0676 DB 11       	IN	A,(0x11)
+1093   0678 AF          	XOR	A
+1094   0679 D3 10       	OUT	(0x10),A
+1095   067B 78          	LD	A,B
+1096   067C E6 03       	AND	0x03
+1097   067E C9          	RET
+1098   067F             
+1099   067F             ; ----------------------------------------
+1100   067F             
+1101   067F DB 10       	IN	A,(0x10)
+1102   0681 E6 08       	AND	0x08
+1103   0683 CA 8B 06    	JP	Z,0x068B
+1104   0686 3E 41       	LD	A,0x41
+1105   0688 C3 D7 06    	JP	0x06D7
+1106   068B 3E 01       	LD	A,0x01
+1107   068D D3 10       	OUT	(0x10),A
+1108   068F DB 10       	IN	A,(0x10)
+1109   0691 E6 08       	AND	0x08
+1110   0693 CA 8F 06    	JP	Z,0x068F
+1111   0696 3E 02       	LD	A,0x02
+1112   0698 D3 10       	OUT	(0x10),A
+1113   069A C9          	RET
+1114   069B             
+1115   069B             ; ----------------------------------------
+1116   069B             
+1117   069B DB 10       	IN	A,(0x10)
+1118   069D 17          	RLA
+1119   069E D2 9B 06    	JP	NC,0x069B
+1120   06A1 1F          	RRA
+1121   06A2 C9          	RET
+1122   06A3             
+1123   06A3             ; ----------------------------------------
+1124   06A3             
+1125   06A3 21 C2 06    	LD	HL,0x06C2
+1126   06A6 C3 AC 06    	JP	0x06AC
+1127   06A9             
+1128   06A9             ; ----------------------------------------
+1129   06A9             
+1130   06A9 21 B3 06    	LD	HL,0x06B3
+1131   06AC 0E C0       	LD	C,0xC0
+1132   06AE 06 0F       	LD	B,0x0F
+1133   06B0 ED B3       	OTIR
+1134   06B2 C9          	RET
+1135   06B3             
+1136   06B3             ; ----------------------------------------
+1137   06B3             
+1138   06B3             ; ??? init string za DMA
+1139   06B3             
+1140   06B3 79 00 E0 FF 	DB	$79, $00, $E0, $FF, $1E, $14, $28, $95
+1140   06B7 1E 14 28 95 
+1141   06BB 11 00 8A CF 	DB	$11, $00, $8A, $CF, $01, $CF, $87
+1141   06BF 01 CF 87    
+1142   06C2             
+1143   06C2             ; ----------------------------------------
+1144   06C2             
+1145   06C2             ; ??? init string za DMA
+1146   06C2             
+1147   06C2 79 00 E0 FF 	DB	$79, $00, $E0, $FF, $1E, $14, $28, $95
+1147   06C6 1E 14 28 95 
+1148   06CA 11 00 8A CF 	DB	$11, $00, $8A, $CF, $05, $CF, $87
+1148   06CE 05 CF 87    
+1149   06D1             
+1150   06D1             ; ----------------------------------------
+1151   06D1             
+1152   06D1 21 E0 06    	LD	HL,0x06E0
+1153   06D4 C3 DA 06    	JP	Napaka
+1154   06D7 21 14 07    	LD	HL,0x0714
+1155   06DA             Napaka:
+1156   06DA CD 43 02    	CALL	IzpisiPrelomInNiz
+1157   06DD C3 03 00    	JP	UkaznaVrstica
+1158   06E0             
+1159   06E0             ; ----------------------------------------
+1160   06E0             
+1161   06E0             ; Sporocxilo, da je nekaj narobe z disketnim pogonom.
+1162   06E0             
+1163   06E0 21 00       	DB	$21, $00
+1164   06E2 46 4C 4F 50 	DB	"FLOPPY DISK MALFUNCTION !!!RETRY WITH COMMAND  F "
+1164   06E6 50 59 20 44 
+1164   06EA 49 53 4B 20 
+1164   06EE 4D 41 4C 46 
+1164   06F2 55 4E 43 54 
+1164   06F6 49 4F 4E 20 
+1164   06FA 21 21 21 52 
+1164   06FE 45 54 52 59 
+1164   0702 20 57 49 54 
+1164   0706 48 20 43 4F 
+1164   070A 4D 4D 41 4E 
+1164   070E 44 20 20 46 
+1164   0712 20          
+1165   0713 00          	DB 	$00
+1166   0714             
+1167   0714             ; ----------------------------------------
+1168   0714             
+1169   0714             ; Sporocxilo, da je nekaj narobe s trdim diskom.
+1170   0714             
+1171   0714 21 00       	DB	$21, $00
+1172   0716 48 41 52 44 	DB	"HARD DISK MALFUNCTION >>> RETRY WITH COMMAND  A "
+1172   071A 20 44 49 53 
+1172   071E 4B 20 4D 41 
+1172   0722 4C 46 55 4E 
+1172   0726 43 54 49 4F 
+1172   072A 4E 20 3E 3E 
+1172   072E 3E 20 52 45 
+1172   0732 54 52 59 20 
+1172   0736 57 49 54 48 
+1172   073A 20 43 4F 4D 
+1172   073E 4D 41 4E 44 
+1172   0742 20 20 41 20 
+1173   0746 00          	DB	$00
+1174   0747             
+1175   0747             ; ----------------------------------------
+1176   0747             
+1177   0747             ; ???
+1178   0747             
+1179   0747 0C 00 00 00 	DB	$0C, $00, $00, $00, $00, $00, $01, $32
+1179   074B 00 00 01 32 
+1180   074F 04 00 80 00 	DB	$04, $00, $80, $00, $40, $0B, $01, $00
+1180   0753 40 0B 01 00 
+1181   0757 00 00 00 00 	DB	$00, $00, $00, $00, $08, $00, $00, $00
+1181   075B 08 00 00 00 
+1182   075F 1F 00       	DB	$1F, $00
+1183   0761             
+1184   0761             ; ----------------------------------------
+1185   0761             
+1186   0761             ; IVT z 2 vnosoma za ???, ki kazxeta na rutino spodaj, ko je prekopirana.
+1187   0761             
+1188   0761 04 C0 04 C0 	DW	$C004, $C004
+1189   0765             
+1190   0765             ; ----------------------------------------
+1191   0765             
+1192   0765             ; Rutina za ???, ki se prekopira na C000 skupaj z zgornjim IVT.
+1193   0765             
+1194   0765 F3          	DI
+1195   0766 3E 03       	LD	A,0x03
+1196   0768 D3 C8       	OUT	(0xC8),A
+1197   076A D3 C9       	OUT	(0xC9),A
+1198   076C D3 88       	OUT	(0x88),A
+1199   076E 21 00 20    	LD	HL,0x2000
+1200   0771 11 00 00    	LD	DE,0x0000
+1201   0774 01 00 08    	LD	BC,0x0800
+1202   0777 ED B0       	LDIR
+1203   0779 21 E8 02    	LD	HL,0x02E8
+1204   077C 7D          	LD	A,L
+1205   077D D3 E8       	OUT	(0xE8),A
+1206   077F D3 C8       	OUT	(0xC8),A
+1207   0781 7C          	LD	A,H
+1208   0782 ED 47       	LD	I,A
+1209   0784 FB          	EI
+1210   0785 CD E4 05    	CALL	IzvediRETI
+1211   0788 21 8E 07    	LD	HL,0x078E
+1212   078B C3 43 02    	JP	IzpisiPrelomInNiz
+1213   078E             
+1214   078E             ; ----------------------------------------
+1215   078E             
+1216   078E             ; Sporocxilo o napaki pri nalaganju s trdega diska, ki se nikoli ne izpisxe?
+1217   078E             
+1218   078E 11 00       	DB	$11, $00
+1219   0790 4C 4F 41 44 	DB	"LOADING ERROR FROM HARD DISK TRY TO LOAD SYSTEM FROM FLOPPY "
+1219   0794 49 4E 47 20 
+1219   0798 45 52 52 4F 
+1219   079C 52 20 46 52 
+1219   07A0 4F 4D 20 48 
+1219   07A4 41 52 44 20 
+1219   07A8 44 49 53 4B 
+1219   07AC 20 54 52 59 
+1219   07B0 20 54 4F 20 
+1219   07B4 4C 4F 41 44 
+1219   07B8 20 53 59 53 
+1219   07BC 54 45 4D 20 
+1219   07C0 46 52 4F 4D 
+1219   07C4 20 46 4C 4F 
+1219   07C8 50 50 59 20 
+1220   07CC 00          	DB	$00
+1221   07CD             
+1222   07CD             	ORG 2047
+1223   07FF 00          	NOP
+Number of errors = 0
